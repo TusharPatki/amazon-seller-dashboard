@@ -1,12 +1,16 @@
 services:
   - type: web
-    name: amazon-inventory-dashboard
-    env: static
+    name: amazon-seller-dashboard
+    env: node
     buildCommand: npm install && npm run build
-    staticPublishPath: ./build
+    startCommand: serve -s build
     envVars:
       - key: NODE_VERSION
-        value: 16
+        value: 18.17.0
+      - key: REACT_APP_GEMINI_API_KEY
+        sync: false
+    healthCheckPath: /
+    autoDeploy: true
     routes:
       - type: rewrite
         source: /*
