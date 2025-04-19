@@ -1,0 +1,44 @@
+FROM node:18-alpine AS build
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files for caching
+COPY package.json package-lock.json ./
+
+# Install dependencies
+RUN npm ci --silent
+
+# Copy the rest of the application
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Production environment
+FROM nginx:alpine
+
+# Copy Nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Remove default nginx static assets
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy static assets from builder stage
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Create .env file at runtime from environment variables
+RUN echo "#!/bin/sh" > /docker-entrypoint.d/40-generate-env.sh && \
+    echo "echo \"window.ENV = {\" > /usr/share/nginx/html/env-config.js" >> /docker-entrypoint.d/40-generate-env.sh && \
+    echo "echo \"  REACT_APP_PERPLEXITY_API_KEY: '\${REACT_APP_PERPLEXITY_API_KEY}',\" >> /usr/share/nginx/html/env-config.js" >> /docker-entrypoint.d/40-generate-env.sh && \
+    echo "echo \"};\" >> /usr/share/nginx/html/env-config.js" >> /docker-entrypoint.d/40-generate-env.sh && \
+    chmod +x /docker-entrypoint.d/40-generate-env.sh
+
+# Add the env-config.js to index.html
+RUN sed -i '/<head>/a\    <script src="%PUBLIC_URL%/env-config.js"></script>' /usr/share/nginx/html/index.html
+
+# Expose port 80
+EXPOSE 80
+
+# Start Nginx
+CMD ["nginx", "-g", "daemon off;"] 

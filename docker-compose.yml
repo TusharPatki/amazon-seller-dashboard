@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Option 1: Simple deployment with serve
   app:
     build:
       context: .
@@ -10,4 +11,16 @@ services:
     environment:
       - NODE_ENV=production
       - REACT_APP_PERPLEXITY_API_KEY=${REACT_APP_PERPLEXITY_API_KEY}
-    restart: unless-stopped 
+    restart: unless-stopped
+    # Comment out the above service and uncomment the below service to use Nginx instead
+
+  # Option 2: Production-ready deployment with Nginx
+  # app-nginx:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.nginx
+  #   ports:
+  #     - "80:80"
+  #   environment:
+  #     - REACT_APP_PERPLEXITY_API_KEY=${REACT_APP_PERPLEXITY_API_KEY}
+  #   restart: unless-stopped 

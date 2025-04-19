@@ -1,68 +1,112 @@
 # Amazon Seller Dashboard
 
-A React-based dashboard for Amazon sellers to analyze their sales and inventory data with AI-powered insights.
+A dashboard for Amazon sellers to track inventory, analyze sales performance, and gain insights via AI-powered analytics.
 
 ## Features
 
-- 📊 Sales and inventory analytics
-- 💡 AI-powered insights using Perplexity AI
-- 📈 Interactive charts and visualizations
-- 📦 Low stock alerts
-- 💰 Revenue tracking
-- ❌ Cancellation analysis
+- **Order Tracking**: View and analyze your Amazon orders
+- **Inventory Management**: Track inventory levels and identify low stock items
+- **Sales Analytics**: Visualize sales data with charts and trends
+- **AI-powered Insights**: Ask questions about your data with natural language
+- **Responsive UI**: Clean, modern interface built with React and Tailwind CSS
 
-## Tech Stack
+## Prerequisites
 
-- React
-- TypeScript
-- Tailwind CSS
-- Perplexity AI API
-- date-fns
+- Node.js >= 18.17.0
+- npm or yarn
+- Docker (optional for containerized deployment)
 
-## Setup
+## Installation
 
 1. Clone the repository:
-```bash
-git clone [your-repo-url]
-cd amazon-inventory-dashboard
-```
+   ```bash
+   git clone https://github.com/TusharPatki/amazon-seller-dashboard.git
+   cd amazon-seller-dashboard
+   ```
 
 2. Install dependencies:
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
-3. Create a `.env` file in the root directory and add your Perplexity AI API key:
-```bash
-REACT_APP_PERPLEXITY_API_KEY=your_api_key_here
-```
+3. Create a `.env` file with your Perplexity API key:
+   ```
+   REACT_APP_PERPLEXITY_API_KEY=your_api_key_here
+   ```
 
 4. Start the development server:
-```bash
-npm start
-```
+   ```bash
+   npm start
+   ```
 
-The application will be available at `http://localhost:3000`
+## Deployment Options
 
-## Environment Variables
+### Option 1: Deploy with Docker
 
-- `REACT_APP_PERPLEXITY_API_KEY`: Your Perplexity AI API key (required)
+1. Make sure Docker and Docker Compose are installed on your system.
 
-## Usage
+2. Build and run the Docker container:
+   ```bash
+   docker-compose up -d
+   ```
 
-1. Upload your Amazon order report (TSV format)
-2. Upload your inventory report (TSV format)
-3. View analytics and insights in the dashboard
-4. Use the AI assistant to get specific insights about your data
+   This will:
+   - Build a Docker image for the application
+   - Start a container exposing port 3000
+   - Set up environment variables
 
-## Contributing
+3. Access your application at http://localhost:3000
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+### Option 2: Deploy on Railway
+
+1. Set up a new project on Railway and connect your GitHub repository
+
+2. Add the environment variable:
+   - `REACT_APP_PERPLEXITY_API_KEY`
+
+3. Railway will automatically deploy your application
+
+### Option 3: Deploy on Render
+
+1. In your Render dashboard, set up a new Web Service and connect your GitHub repository
+
+2. Configure the service:
+   - Build Command: `npm ci && npm run build`
+   - Start Command: `serve -s build`
+
+3. Add the environment variable:
+   - `REACT_APP_PERPLEXITY_API_KEY`
+
+4. Deploy the service
+
+## Troubleshooting Docker Deployment
+
+If you encounter issues with the Docker deployment, try these steps:
+
+1. Check if Docker is running on your system
+
+2. Verify that the Docker and Docker Compose files are in the root directory
+
+3. Check for errors during the build process:
+   ```bash
+   docker build -t amazon-seller-dashboard .
+   ```
+
+4. Ensure your environment variables are properly set:
+   ```bash
+   export REACT_APP_PERPLEXITY_API_KEY=your_api_key_here
+   ```
+
+5. Check Docker logs if the container is running but the app isn't accessible:
+   ```bash
+   docker logs $(docker ps -q --filter ancestor=amazon-seller-dashboard)
+   ```
+
+6. For npm ci failures, try rebuilding with:
+   ```bash
+   docker build --no-cache -t amazon-seller-dashboard .
+   ```
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+MIT 
