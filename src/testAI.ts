@@ -18,7 +18,7 @@ const testAI = async () => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'sonar-small-chat', // Using the same model as the main service
+        model: 'sonar', // Using a supported Perplexity model
         messages: [
           {
             role: 'user',

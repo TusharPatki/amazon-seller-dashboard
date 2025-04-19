@@ -88,7 +88,7 @@ Instructions:
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'sonar-small-chat',
+        model: 'sonar',
         messages: [
           {
             role: 'system',
