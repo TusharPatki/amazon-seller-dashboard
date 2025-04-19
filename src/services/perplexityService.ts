@@ -49,7 +49,7 @@ export async function getPerplexityResponse(
 
     // Prepare context with business metrics
     const context = `You are an AI assistant for an Amazon seller dashboard. You help sellers analyze their sales and inventory data.
-You should be professional, concise, and helpful. Always format currency in Indian Rupees (₹).
+You should be professional, concise, and helpful. Keep responses brief but informative. Always format currency in Indian Rupees (₹).
 When analyzing data, focus on providing actionable insights that can help the seller improve their business.
 
 Current Business Metrics:
@@ -67,24 +67,18 @@ Recent Performance:
 - Last 30 Days Sales: ${last30DaysSales.length} orders
 - Average Daily Sales: ${(last30DaysSales.length / 30).toFixed(1)} orders
 
-Recent Orders Sample:
-${JSON.stringify(orders.slice(0, 3), null, 2)}
-
-Low Stock Items Sample:
-${JSON.stringify(lowStock.slice(0, 3), null, 2)}
-
 Instructions:
-1. Keep responses concise and focused
-2. Use bullet points for lists
+1. Keep responses VERY concise and focused (2-3 sentences maximum for text)
+2. Use bullet points for lists when appropriate
 3. Format all currency values in Indian Rupees (₹)
-4. Provide specific, data-driven insights
-5. Suggest actionable recommendations when relevant
-6. When showing data, use markdown tables with the following format:
+4. When showing data, ALWAYS use markdown tables with the following format:
    | Column 1 | Column 2 | Column 3 |
    | -------- | -------- | -------- |
    | Data 1   | Data 2   | Data 3   |
-7. Tables should have clear headers and organized data
-8. When appropriate, organize your response with headings for different sections`;
+5. Tables should have clear headers and organized data
+6. Limit responses to essential information only
+7. Prioritize tables over lengthy explanations
+8. Use bold formatting for key metrics or insights`;
 
     console.log('Making API request to Perplexity...');
     const response = await fetch('https://api.perplexity.ai/chat/completions', {

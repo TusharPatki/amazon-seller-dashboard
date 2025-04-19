@@ -33,14 +33,17 @@ export function AIChatBot({ orders, inventory }: AIChatBotProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
-      text: "Hello! I'm your Amazon Seller Assistant powered by Perplexity AI. How can I help you today?",
+      text: "Hello! I'm your Amazon Seller Assistant. How can I help you today?",
       isUser: false,
       timestamp: new Date()
     }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Check API key on component mount
   useEffect(() => {
@@ -64,14 +67,71 @@ export function AIChatBot({ orders, inventory }: AIChatBotProps) {
     scrollToBottom();
   }, [messages]);
 
-  const predefinedQuestions = [
+  // Define all possible suggestions
+  const allSuggestions = [
     "What are my top selling products?",
     "How many items are low in stock?",
     "What's my total revenue this week?",
     "Show me cancelled orders analysis",
     "Analyze my inventory turnover",
-    "What are the sales trends?"
+    "What are the sales trends?",
+    "Compare this month vs last month",
+    "Which products have the highest profit margin?",
+    "Forecast my inventory needs",
+    "Identify slow-moving inventory"
   ];
+
+  // Filter suggestions based on input
+  useEffect(() => {
+    if (inputValue.trim() === '') {
+      setFilteredSuggestions([]);
+      return;
+    }
+    
+    const filtered = allSuggestions.filter(
+      suggestion => suggestion.toLowerCase().includes(inputValue.toLowerCase())
+    ).slice(0, 3); // Only show top 3 matches
+    
+    setFilteredSuggestions(filtered);
+    setActiveSuggestion(-1);
+  }, [inputValue]);
+  
+  // Handle arrow key navigation through suggestions
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // If no suggestions, do nothing
+    if (filteredSuggestions.length === 0) return;
+    
+    // Up arrow
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSuggestion(prevActive => 
+        prevActive > 0 ? prevActive - 1 : filteredSuggestions.length - 1
+      );
+    }
+    // Down arrow
+    else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSuggestion(prevActive => 
+        prevActive < filteredSuggestions.length - 1 ? prevActive + 1 : 0
+      );
+    }
+    // Tab or Enter to select suggestion
+    else if ((e.key === 'Tab' || e.key === 'Enter') && activeSuggestion >= 0) {
+      e.preventDefault();
+      setInputValue(filteredSuggestions[activeSuggestion]);
+      setFilteredSuggestions([]);
+      
+      if (e.key === 'Enter') {
+        handleSendMessage(filteredSuggestions[activeSuggestion]);
+      } else {
+        inputRef.current?.focus();
+      }
+    }
+    // Enter to send current input
+    else if (e.key === 'Enter' && !isLoading) {
+      handleSendMessage(inputValue);
+    }
+  };
 
   // Format message text to display tables
   const formatMessageText = (text: string) => {
@@ -152,7 +212,7 @@ export function AIChatBot({ orders, inventory }: AIChatBotProps) {
     const apiKey = process.env.REACT_APP_PERPLEXITY_API_KEY?.trim();
     if (!apiKey) {
       setMessages(prev => [...prev, {
-        text: "Configuration Error: The AI service is not properly configured. Please check your environment variables and restart the application.",
+        text: "Configuration Error: API key not found. Check environment variables.",
         isUser: false,
         timestamp: new Date(),
         isError: true
@@ -178,6 +238,7 @@ export function AIChatBot({ orders, inventory }: AIChatBotProps) {
     setMessages(prev => [...prev, userMessage, loadingMessage]);
     setIsLoading(true);
     setInputValue('');
+    setFilteredSuggestions([]);
 
     try {
       // Get AI response
@@ -200,8 +261,8 @@ export function AIChatBot({ orders, inventory }: AIChatBotProps) {
         ...prev.slice(0, -1), // Remove loading message
         {
           text: error instanceof Error 
-            ? `Error: ${error.message}. Please try again or contact support.`
-            : "An unexpected error occurred. Please try again later.",
+            ? `Error: ${error.message}. Try again later.`
+            : "An unexpected error occurred. Try again later.",
           isUser: false,
           timestamp: new Date(),
           isError: true
@@ -210,10 +271,6 @@ export function AIChatBot({ orders, inventory }: AIChatBotProps) {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleQuestionClick = (question: string) => {
-    handleSendMessage(question);
   };
 
   return (
@@ -233,7 +290,7 @@ export function AIChatBot({ orders, inventory }: AIChatBotProps) {
       {isOpen && (
         <div className="bg-white rounded-lg shadow-xl w-[450px] max-w-full flex flex-col" style={{ height: '600px' }}>
           {/* Header */}
-          <div className="p-4 border-b flex justify-between items-center bg-blue-500 text-white rounded-t-lg">
+          <div className="p-3 border-b flex justify-between items-center bg-blue-500 text-white rounded-t-lg">
             <h3 className="font-medium">AI Assistant</h3>
             <button onClick={() => setIsOpen(false)} className="text-white hover:text-gray-200">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -243,7 +300,7 @@ export function AIChatBot({ orders, inventory }: AIChatBotProps) {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-2" style={{ scrollBehavior: 'smooth' }}>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-2" style={{ scrollBehavior: 'smooth' }}>
             {messages.map((message, index) => (
               <div
                 key={index}
@@ -286,51 +343,69 @@ export function AIChatBot({ orders, inventory }: AIChatBotProps) {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input with Suggestions above */}
-          <div className="border-t">
-            {/* Suggested Questions moved above input */}
-            <div className="p-3 bg-gray-50 border-b">
-              <div className="text-sm text-gray-600 mb-2">Try asking:</div>
-              <div className="flex flex-wrap gap-2">
-                {predefinedQuestions.map((question, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleQuestionClick(question)}
-                    disabled={isLoading}
-                    className={`text-xs bg-white border border-gray-200 rounded-full px-3 py-1 hover:bg-gray-100 ${
-                      isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    {question}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            {/* Input section */}
-            <div className="p-4 flex space-x-2">
+          {/* Input with inline suggestions */}
+          <div className="border-t p-3">
+            <div className="relative">
               <input
+                ref={inputRef}
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSendMessage(inputValue)}
+                onKeyDown={handleKeyDown}
                 placeholder="Type your question..."
                 disabled={isLoading}
-                className={`flex-1 border rounded-full px-4 py-2 focus:outline-none focus:border-blue-500 ${
+                className={`w-full border rounded-full px-4 py-2 pr-10 focus:outline-none focus:border-blue-500 ${
                   isLoading ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               />
               <button
                 onClick={() => handleSendMessage(inputValue)}
-                disabled={isLoading}
-                className={`bg-blue-500 text-white rounded-full p-2 hover:bg-blue-600 ${
-                  isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                disabled={isLoading || !inputValue.trim()}
+                className={`absolute right-1 top-1 bg-blue-500 text-white rounded-full p-1.5 hover:bg-blue-600 ${
+                  (isLoading || !inputValue.trim()) ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
               </button>
+              
+              {/* Inline Suggestions */}
+              {filteredSuggestions.length > 0 && (
+                <div className="absolute left-0 right-0 bottom-full mb-1 bg-white rounded-lg shadow-lg border border-gray-200 z-10 overflow-hidden">
+                  {filteredSuggestions.map((suggestion, index) => (
+                    <div
+                      key={index}
+                      className={`px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 ${
+                        index === activeSuggestion ? 'bg-gray-100' : ''
+                      }`}
+                      onClick={() => {
+                        setInputValue(suggestion);
+                        setFilteredSuggestions([]);
+                        inputRef.current?.focus();
+                      }}
+                    >
+                      {suggestion}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Quick Suggestions - small pills below input */}
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {allSuggestions.slice(0, 3).map((suggestion, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSendMessage(suggestion)}
+                  disabled={isLoading}
+                  className={`text-xs bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5 hover:bg-gray-200 transition-colors ${
+                    isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {suggestion.length > 25 ? suggestion.substring(0, 22) + '...' : suggestion}
+                </button>
+              ))}
             </div>
           </div>
         </div>
