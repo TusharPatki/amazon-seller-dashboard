@@ -1,67 +1,68 @@
-# Amazon Inventory Dashboard
+# Amazon Seller Dashboard
 
-A React-based dashboard for Amazon sellers to track inventory, analyze sales performance, and get insights about their business.
+A React-based dashboard for Amazon sellers to analyze their sales and inventory data with AI-powered insights.
 
 ## Features
 
-- Inventory tracking and analysis
-- Sales performance metrics
-- Low stock alerts
-- Advanced analytics with sales trends
-- Cancellation analysis
-- Replenishment recommendations
+- 📊 Sales and inventory analytics
+- 💡 AI-powered insights using Perplexity AI
+- 📈 Interactive charts and visualizations
+- 📦 Low stock alerts
+- 💰 Revenue tracking
+- ❌ Cancellation analysis
 
 ## Tech Stack
 
-- React 18
+- React
 - TypeScript
 - Tailwind CSS
-- date-fns for date manipulation
+- Perplexity AI API
+- date-fns
 
-## Local Development
+## Setup
 
-1. Clone the repository
+1. Clone the repository:
+```bash
+git clone [your-repo-url]
+cd amazon-inventory-dashboard
+```
+
 2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm start
-   ```
-4. Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```bash
+npm install
+```
 
-## Deployment on Render
+3. Create a `.env` file in the root directory and add your Perplexity AI API key:
+```bash
+REACT_APP_PERPLEXITY_API_KEY=your_api_key_here
+```
 
-1. Fork or clone this repository to your GitHub account
-2. Create a new Web Service on [Render](https://render.com)
-3. Connect your GitHub repository
-4. Use the following settings:
-   - Environment: Static Site
-   - Build Command: `npm install && npm run build`
-   - Publish Directory: `build`
-5. Click "Create Static Site"
+4. Start the development server:
+```bash
+npm start
+```
 
-The site will be automatically deployed and you'll get a URL to access it.
+The application will be available at `http://localhost:3000`
 
 ## Environment Variables
 
-No environment variables are required for basic functionality.
+- `REACT_APP_PERPLEXITY_API_KEY`: Your Perplexity AI API key (required)
 
-## Build
+## Usage
 
-To build the app for production:
-
-```bash
-npm run build
-```
-
-This creates an optimized production build in the `build` folder.
+1. Upload your Amazon order report (TSV format)
+2. Upload your inventory report (TSV format)
+3. View analytics and insights in the dashboard
+4. Use the AI assistant to get specific insights about your data
 
 ## Contributing
 
-Feel free to open issues and pull requests for any improvements.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-MIT 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 

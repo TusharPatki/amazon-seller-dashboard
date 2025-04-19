@@ -1,9 +1,10 @@
-import React, { useState } from "react";
-import { differenceInDays, parseISO, format } from "date-fns";
+import React, { useState, useMemo } from "react";
+import { differenceInDays, parseISO, format, subDays, startOfDay, isWithinInterval } from "date-fns";
+import { AIChatBot } from "./AIChatBot";
 
 export function Dashboard({ orders, inventory }: any) {
   const [activeTab, setActiveTab] = useState<'summary' | 'sales' | 'lowStock' | 'analytics'>('summary');
-  const today = new Date();
+  const today = startOfDay(new Date());
 
   const shippedOrders = orders.filter((o: any) => o["order-status"].includes("Shipped"));
   const cancelledOrders = orders.filter((o: any) => o["order-status"].includes("Cancelled"));
@@ -34,6 +35,31 @@ export function Dashboard({ orders, inventory }: any) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
   };
+
+  // Calculate sales by day for the last 7 days
+  const salesByDay = useMemo(() => {
+    // Only get last 7 days
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = subDays(today, i);
+      return format(date, 'yyyy-MM-dd');
+    }).reverse();
+
+    const salesData = last7Days.reduce((acc: Record<string, number>, date) => {
+      acc[date] = 0;
+      return acc;
+    }, {});
+
+    shippedOrders.forEach((order: any) => {
+      const orderDate = startOfDay(parseISO(order["purchase-date"]));
+      const dateStr = format(orderDate, 'yyyy-MM-dd');
+      
+      if (isWithinInterval(orderDate, { start: parseISO(last7Days[0]), end: today })) {
+        salesData[dateStr] = (salesData[dateStr] || 0) + parseInt(order.quantity || "1");
+      }
+    });
+
+    return salesData;
+  }, [shippedOrders, today]);
 
   return (
     <div>
@@ -434,51 +460,164 @@ export function Dashboard({ orders, inventory }: any) {
             <div className="bg-white rounded-lg border shadow-sm p-5">
               <h3 className="font-medium text-lg text-gray-800 mb-4">Sales Trends</h3>
               {(() => {
-                const salesByDay = shippedOrders.reduce((acc: Record<string, number>, order: any) => {
-                  const date = format(parseISO(order["purchase-date"]), 'yyyy-MM-dd');
-                  if (!acc[date]) acc[date] = 0;
-                  acc[date] += parseInt(order.quantity || "0");
-                  return acc;
-                }, {});
-
-                const dates = Object.keys(salesByDay).sort();
-                const last14Days = dates.slice(-14);
-
-                const lastWeekSales = last14Days.slice(-7).reduce((sum, date) => sum + (salesByDay[date] || 0), 0);
-                const prevWeekSales = last14Days.slice(-14, -7).reduce((sum, date) => sum + (salesByDay[date] || 0), 0);
-                const growthRate = prevWeekSales > 0 ? ((lastWeekSales - prevWeekSales) / prevWeekSales) * 100 : 0;
-
-                const maxSales = Math.max(...Object.values(salesByDay));
-
+                const dates = Object.keys(salesByDay);
+                const values = Object.values(salesByDay);
+                
+                // Calculate week-over-week growth
+                const currentWeekSales = values.reduce((sum: number, val: number) => sum + val, 0);
+                const prevWeekStart = subDays(parseISO(dates[0]), 7);
+                const prevWeekSales = shippedOrders
+                  .filter((order: any) => {
+                    const orderDate = parseISO(order["purchase-date"]);
+                    return isWithinInterval(orderDate, {
+                      start: prevWeekStart,
+                      end: subDays(parseISO(dates[0]), 1)
+                    });
+                  })
+                  .reduce((sum: number, order: any) => sum + parseInt(order.quantity || "1"), 0);
+                
+                const growthRate = prevWeekSales > 0 ? ((currentWeekSales - prevWeekSales) / prevWeekSales) * 100 : 0;
+                
+                // Chart dimensions
+                const height = 300;
+                const padding = { top: 40, right: 20, bottom: 60, left: 40 };
+                const chartHeight = height - padding.top - padding.bottom;
+                const chartWidth = 100 - padding.left - padding.right;
+                
+                // Find min/max for scaling
+                const maxSales = Math.max(...values, 1);
+                const minSales = Math.min(...values, 0);
+                
+                // Calculate points for the line
+                const points = values.map((value, index) => {
+                  const x = padding.left + (index / (values.length - 1)) * chartWidth;
+                  const y = padding.top + chartHeight - ((value - minSales) / (maxSales - minSales)) * chartHeight;
+                  return `${x},${y}`;
+                }).join(' ');
+                
                 return (
                   <div>
                     <div className="flex justify-between items-center mb-4">
-                      <div className="font-medium">Weekly Growth</div>
+                      <div className="font-medium text-gray-800">Weekly Growth</div>
                       <div className={`text-sm font-medium ${growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {growthRate >= 0 ? '↑' : '↓'} {Math.abs(growthRate).toFixed(1)}%
                       </div>
                     </div>
+                    
+                    <div className="relative" style={{ height: `${height}px` }}>
+                      {/* Background grid */}
+                      <div className="absolute inset-0" style={{ 
+                        padding: `${padding.top}px ${padding.right}px ${padding.bottom}px ${padding.left}px`,
+                      }}>
+                        <div className="w-full h-full grid grid-cols-7 grid-rows-4">
+                          {Array.from({ length: 28 }).map((_, i) => (
+                            <div key={i} className="border-r border-t border-gray-100" />
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Chart SVG */}
+                      <svg
+                        className="absolute inset-0 w-full h-full"
+                        viewBox={`0 0 100 ${height}`}
+                        preserveAspectRatio="none"
+                      >
+                        {/* Area gradient */}
+                        <defs>
+                          <linearGradient id="areaGradient" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor="rgb(96, 165, 250)" stopOpacity="0.2" />
+                            <stop offset="100%" stopColor="rgb(96, 165, 250)" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
 
-                    <div className="h-40 flex items-end space-x-1">
-                      {last14Days.map((date, i) => {
-                        const salesValue = salesByDay[date] || 0;
-                        const height = maxSales > 0 ? Math.max((salesValue / maxSales) * 100, 5) : 0;
+                        {/* Area fill */}
+                        <path
+                          d={`M ${points} L ${padding.left + chartWidth},${padding.top + chartHeight} L ${padding.left},${padding.top + chartHeight} Z`}
+                          fill="url(#areaGradient)"
+                        />
                         
-                        return (
-                          <div key={date} className="flex-1 flex flex-col items-center">
-                            <div 
-                              className={`w-full ${i >= 7 ? 'bg-blue-500' : 'bg-gray-300'}`} 
-                              style={{ height: `${height}%` }}
-                            ></div>
-                            <div className="text-xs mt-1 -rotate-90 origin-top-left transform translate-y-6 whitespace-nowrap">
-                              {format(new Date(date), 'MM/dd')}
-                            </div>
+                        {/* Main line */}
+                        <polyline
+                          points={points}
+                          fill="none"
+                          stroke="#60A5FA"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        
+                        {/* Data points */}
+                        {values.map((value, index) => {
+                          const x = padding.left + (index / (values.length - 1)) * chartWidth;
+                          const y = padding.top + chartHeight - ((value - minSales) / (maxSales - minSales)) * chartHeight;
+                          return (
+                            <g key={index} className="group">
+                              {/* Outer circle */}
+                              <circle
+                                cx={x}
+                                cy={y}
+                                r="6"
+                                fill="white"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                              />
+                              {/* Inner circle */}
+                              <circle
+                                cx={x}
+                                cy={y}
+                                r="4"
+                                fill="#60A5FA"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                              />
+                              
+                              {/* Tooltip */}
+                              <g className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                <rect
+                                  x={x - 25}
+                                  y={y - 35}
+                                  width="50"
+                                  height="22"
+                                  rx="4"
+                                  fill="#1F2937"
+                                />
+                                <text
+                                  x={x}
+                                  y={y - 20}
+                                  textAnchor="middle"
+                                  fill="white"
+                                  fontSize="11"
+                                >
+                                  {value} units
+                                </text>
+                              </g>
+                            </g>
+                          );
+                        })}
+                      </svg>
+                      
+                      {/* X-axis labels */}
+                      <div 
+                        className="absolute left-0 right-0 flex justify-between"
+                        style={{ 
+                          bottom: `${padding.bottom / 2}px`,
+                          paddingLeft: `${padding.left}px`,
+                          paddingRight: `${padding.right}px`
+                        }}
+                      >
+                        {dates.map((date, i) => (
+                          <div
+                            key={i}
+                            className="transform -rotate-45 origin-top-left text-xs text-gray-500"
+                            style={{ 
+                              marginLeft: i === 0 ? '0' : '-0.5rem',
+                            }}
+                          >
+                            {format(parseISO(date), 'MMM dd')}
                           </div>
-                        );
-                      })}
+                        ))}
+                      </div>
                     </div>
-
-                    <div className="flex justify-between mt-10 text-xs text-gray-600">
+                    
+                    <div className="flex justify-between mt-16 text-sm text-gray-600">
                       <div>Previous Week</div>
                       <div>Current Week</div>
                     </div>
@@ -547,6 +686,9 @@ export function Dashboard({ orders, inventory }: any) {
           </div>
         </div>
       )}
+
+      {/* Add AI Chatbot */}
+      <AIChatBot orders={orders} inventory={inventory} />
     </div>
   );
 } 
