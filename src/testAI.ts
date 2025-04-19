@@ -18,7 +18,7 @@ const testAI = async () => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'pplx-7b-chat', // Using the most basic Perplexity model
+        model: 'sonar-small-chat', // Using the same model as the main service
         messages: [
           {
             role: 'user',
