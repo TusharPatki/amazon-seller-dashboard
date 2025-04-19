@@ -78,7 +78,13 @@ Instructions:
 2. Use bullet points for lists
 3. Format all currency values in Indian Rupees (₹)
 4. Provide specific, data-driven insights
-5. Suggest actionable recommendations when relevant`;
+5. Suggest actionable recommendations when relevant
+6. When showing data, use markdown tables with the following format:
+   | Column 1 | Column 2 | Column 3 |
+   | -------- | -------- | -------- |
+   | Data 1   | Data 2   | Data 3   |
+7. Tables should have clear headers and organized data
+8. When appropriate, organize your response with headings for different sections`;
 
     console.log('Making API request to Perplexity...');
     const response = await fetch('https://api.perplexity.ai/chat/completions', {

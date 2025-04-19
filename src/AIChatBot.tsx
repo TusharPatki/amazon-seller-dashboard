@@ -73,6 +73,79 @@ export function AIChatBot({ orders, inventory }: AIChatBotProps) {
     "What are the sales trends?"
   ];
 
+  // Format message text to display tables
+  const formatMessageText = (text: string) => {
+    // Check if the message contains markdown-style tables
+    if (text.includes('|') && text.includes('----')) {
+      return (
+        <div>
+          {text.split('\n\n').map((paragraph, idx) => {
+            // If paragraph contains a table
+            if (paragraph.includes('|') && paragraph.includes('----')) {
+              const tableLines = paragraph.trim().split('\n');
+              const headerRow = tableLines[0].split('|').filter(cell => cell.trim() !== '');
+              const hasHeaders = tableLines.length > 1 && tableLines[1].includes('----');
+              const startRow = hasHeaders ? 2 : 0;
+              
+              return (
+                <div key={idx} className="overflow-x-auto my-2">
+                  <table className="min-w-full divide-y divide-gray-300 border border-gray-200 rounded">
+                    {hasHeaders && (
+                      <thead className="bg-gray-50">
+                        <tr>
+                          {headerRow.map((cell, cellIdx) => (
+                            <th key={cellIdx} className="px-3 py-2 text-xs font-medium text-gray-700 text-left">
+                              {cell.trim()}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                    )}
+                    <tbody className="divide-y divide-gray-200">
+                      {tableLines.slice(startRow).map((row, rowIdx) => {
+                        if (!row.includes('|')) return null;
+                        const cells = row.split('|').filter(cell => cell !== '');
+                        return (
+                          <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                            {cells.map((cell, cellIdx) => (
+                              <td key={cellIdx} className="px-3 py-2 text-xs text-gray-700">
+                                {cell.trim()}
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            } 
+            // Regular paragraph
+            else {
+              return <p key={idx} className="mb-2">{paragraph}</p>;
+            }
+          })}
+        </div>
+      );
+    }
+    
+    // If no table, just return the text with new lines
+    return (
+      <div>
+        {text.split('\n\n').map((paragraph, idx) => (
+          <p key={idx} className="mb-2">
+            {paragraph.split('\n').map((line, lineIdx) => (
+              <React.Fragment key={lineIdx}>
+                {line}
+                {lineIdx < paragraph.split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
+          </p>
+        ))}
+      </div>
+    );
+  };
+
   const handleSendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
 
@@ -158,7 +231,7 @@ export function AIChatBot({ orders, inventory }: AIChatBotProps) {
       )}
 
       {isOpen && (
-        <div className="bg-white rounded-lg shadow-xl w-96 max-w-full flex flex-col" style={{ height: '500px' }}>
+        <div className="bg-white rounded-lg shadow-xl w-[450px] max-w-full flex flex-col" style={{ height: '600px' }}>
           {/* Header */}
           <div className="p-4 border-b flex justify-between items-center bg-blue-500 text-white rounded-t-lg">
             <h3 className="font-medium">AI Assistant</h3>
@@ -170,14 +243,14 @@ export function AIChatBot({ orders, inventory }: AIChatBotProps) {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-2" style={{ scrollBehavior: 'smooth' }}>
             {messages.map((message, index) => (
               <div
                 key={index}
                 className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-3/4 p-3 rounded-lg ${
+                  className={`max-w-[95%] p-3 rounded-lg ${
                     message.isUser
                       ? 'bg-blue-500 text-white'
                       : message.isLoading
@@ -194,9 +267,9 @@ export function AIChatBot({ orders, inventory }: AIChatBotProps) {
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                     </div>
                   ) : (
-                    <pre className="whitespace-pre-wrap font-sans text-sm">
-                      {message.text}
-                    </pre>
+                    <div className="font-sans text-sm">
+                      {formatMessageText(message.text)}
+                    </div>
                   )}
                   <div className={`text-xs mt-1 ${
                     message.isUser 
@@ -213,28 +286,29 @@ export function AIChatBot({ orders, inventory }: AIChatBotProps) {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Suggested Questions */}
-          <div className="p-4 border-t bg-gray-50">
-            <div className="text-sm text-gray-600 mb-2">Suggested questions:</div>
-            <div className="flex flex-wrap gap-2">
-              {predefinedQuestions.map((question, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleQuestionClick(question)}
-                  disabled={isLoading}
-                  className={`text-xs bg-white border border-gray-200 rounded-full px-3 py-1 hover:bg-gray-100 ${
-                    isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {question}
-                </button>
-              ))}
+          {/* Input with Suggestions above */}
+          <div className="border-t">
+            {/* Suggested Questions moved above input */}
+            <div className="p-3 bg-gray-50 border-b">
+              <div className="text-sm text-gray-600 mb-2">Try asking:</div>
+              <div className="flex flex-wrap gap-2">
+                {predefinedQuestions.map((question, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleQuestionClick(question)}
+                    disabled={isLoading}
+                    className={`text-xs bg-white border border-gray-200 rounded-full px-3 py-1 hover:bg-gray-100 ${
+                      isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-
-          {/* Input */}
-          <div className="p-4 border-t">
-            <div className="flex space-x-2">
+            
+            {/* Input section */}
+            <div className="p-4 flex space-x-2">
               <input
                 type="text"
                 value={inputValue}
