@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from "react";
 import { differenceInDays, parseISO, format, subDays, startOfDay, isWithinInterval } from "date-fns";
-import { AIChatBot } from "./AIChatBot";
 
 export function Dashboard({ orders, inventory }: any) {
   const [activeTab, setActiveTab] = useState<'summary' | 'sales' | 'lowStock' | 'analytics'>('summary');
@@ -686,9 +685,6 @@ export function Dashboard({ orders, inventory }: any) {
           </div>
         </div>
       )}
-
-      {/* Add AI Chatbot */}
-      <AIChatBot orders={orders} inventory={inventory} />
     </div>
   );
 } 
