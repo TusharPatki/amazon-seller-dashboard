@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { UploadForm } from "./UploadForm";
 import { Dashboard } from "./Dashboard";
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import TestAIPage from './TestAIPage';
 
 const App: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
@@ -52,7 +51,6 @@ const App: React.FC = () => {
             </footer>
           </div>
         } />
-        <Route path="/test-ai" element={<TestAIPage />} />
       </Routes>
     </Router>
   );
